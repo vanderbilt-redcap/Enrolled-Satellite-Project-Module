@@ -1,0 +1,40 @@
+{
+	"name": "Enrolled Satellite Project",
+
+	"namespace": "Vanderbilt\\EnrolledSatelliteProjectExternalModule",
+
+	"description": "Enrolled Satellite Project is intended to complement Cross Project Enroll to prevent creating new records, add return to central project navigation, and lock-down specific forms.",
+
+    "authors": [
+        {
+            "name": "Travis M Wilson",
+            "email": "datacore@vanderbilt.edu",
+            "institution": "Vanderbilt University Medical Center"
+        }
+    ],
+	
+	"permissions": [
+		"redcap_every_page_top",
+		"redcap_add_edit_records_page",
+		"redcap_data_entry_form_top",
+		"select_data"
+	],
+
+	"links": {
+	},
+
+	"system-settings": [
+		
+	],
+	
+	"project-settings": [
+		{
+			"key": "central-project-id",
+			"name": "Central Project",
+			"required": true,
+			"type": "project-id",
+			"repeatable": false,
+			"super-users-only": true
+		}
+	]
+}
