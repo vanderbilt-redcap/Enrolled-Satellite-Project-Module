@@ -6,13 +6,6 @@ use ExternalModules\ExternalModules;
 
 class EnrolledSatelliteProjectExternalModule extends AbstractExternalModule
 {
-	// public $module_settings;
-
-	// public function __construct() {
-	// 	parent::__construct();
-	// 	$this->module_settings = ExternalModules::getProjectSettingsAsArray([$this->PREFIX], $project_id);
-	// }
-	
 	function redcap_every_page_top($project_id) {
 		if(empty($project_id)) {
 			return;
@@ -23,6 +16,7 @@ class EnrolledSatelliteProjectExternalModule extends AbstractExternalModule
 			$this->addSatelliteFunctions($project_id, $record, $instrument);
 		}
 	}
+
 	function redcap_add_edit_records_page($project_id, $record, $instrument, $event_id) {
 		ob_start();
 		?>
@@ -43,8 +37,21 @@ class EnrolledSatelliteProjectExternalModule extends AbstractExternalModule
 		ob_clean();
 		echo $output;
 	}
+
 	function redcap_data_entry_form_top($project_id, $record, $instrument, $event_id) {
 		echo $this->addCentralProjectLink($project_id, $record);
+	}
+
+	function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance) {
+		$module_settings = ExternalModules::getProjectSettingsAsArray([$this->PREFIX], $project_id);
+		if(!empty($module_settings['piped-form']['value']) && is_array($module_settings['piped-form']['value']) && in_array($instrument, $module_settings['piped-form']['value'])) {
+			/*echo $project_id.'<br>';
+			echo $record.'<br>';
+			echo $instrument.'<br>';
+			echo $event_id.'<br>';
+			echo '<hr>';
+			die();*/
+		}
 	}
 
 	/**
