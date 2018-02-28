@@ -42,15 +42,29 @@ class EnrolledSatelliteProjectExternalModule extends AbstractExternalModule
 		echo $this->addCentralProjectLink($project_id, $record);
 	}
 
-	function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance) {
+	function redcap_save_record($project_id, $record, $instrument, $event_id) {
 		$module_settings = ExternalModules::getProjectSettingsAsArray([$this->PREFIX], $project_id);
 		if(!empty($module_settings['piped-form']['value']) && is_array($module_settings['piped-form']['value']) && in_array($instrument, $module_settings['piped-form']['value'])) {
-			/*echo $project_id.'<br>';
-			echo $record.'<br>';
-			echo $instrument.'<br>';
-			echo $event_id.'<br>';
-			echo '<hr>';
-			die();*/
+			$escInst = db_real_escape_string($instrument);
+			$sql = "SELECT * FROM redcap_locking_data WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND form_name = '{$escInst}'";
+			$results = $this->query($sql);
+			$lockData = db_fetch_assoc($results);
+			if(empty($lockData)) {
+				$sql = "INSERT INTO redcap_locking_data SET project_id = {$project_id}, record = {$record}, event_id = {$event_id}, form_name = '{$escInst}', timestamp = '".date('Y-m-d H:i:s')."'";
+				$results = $this->query($sql);
+			}
+
+			$fieldName = db_real_escape_string($instrument).'_complete';
+			$sql = "SELECT * FROM redcap_data WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND field_name = '{$fieldName}'";
+			$compResults = $this->query($sql);
+			$compData = db_fetch_assoc($compResults);
+			if(empty($compData)) {
+				$sql = "INSERT INTO redcap_data SET project_id = {$project_id}, record = {$record}, event_id = {$event_id}, field_name = '{$fieldName}', value = 2";
+				$results = $this->query($sql);
+			} else {
+				$sql = "UPDATE redcap_data SET value = 2 WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND field_name = '{$fieldName}'";
+				$results = $this->query($sql);
+			}
 		}
 	}
 
