@@ -38,12 +38,30 @@
 			"super-users-only": true
 		},
 		{
-			"key": "piped-form",
+			"key": "piped-forms",
 			"name": "Piped Form(s)",
 			"required": false,
-			"type": "form-list",
+			"type": "sub_settings",
 			"repeatable": true,
-			"super-users-only": true
+			"super-users-only": true,
+			"sub_settings": [
+				{
+					"key": "piped-form",
+					"name": "Piped Form",
+					"required": false,
+					"type": "form-list",
+					"repeatable": false,
+					"super-users-only": true
+				},
+				{
+					"key": "lock-on-complete",
+					"name": "Lock record on complete?",
+					"required": false,
+					"type": "checkbox",
+					"repeatable": false,
+					"super-users-only": true
+				}
+			]
 		}
 	]
 }

@@ -39,31 +39,54 @@ class EnrolledSatelliteProjectExternalModule extends AbstractExternalModule
 	}
 
 	function redcap_data_entry_form_top($project_id, $record, $instrument, $event_id) {
+		$module_settings = ExternalModules::getProjectSettingsAsArray([$this->PREFIX], $project_id);
+		if(!empty($module_settings['piped-form']['value']) && is_array($module_settings['piped-form']['value']) && in_array($instrument, $module_settings['piped-form']['value'])) {
+			ob_start();
+			?>
+				<style>
+					.\@READONLY, .\@READONLY-FORM {
+						-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=100)" !important;
+						filter: alpha(opacity=100) !important;
+						-moz-opacity: 1 !important;
+						-khtml-opacity: 1 !important;
+						opacity: 1 !important;
+					}
+					.\@READONLY input, .\@READONLY textarea, .\@READONLY select, .\@READONLY-FORM input, .\@READONLY-FORM textarea, .\@READONLY-FORM select {
+						background-color: #f3f3f3;
+					}
+				</style>
+			<?php
+			$output = ob_get_contents();
+			ob_clean();
+			echo $output;
+		}
 		echo $this->addCentralProjectLink($project_id, $record);
 	}
 
-	function redcap_save_record($project_id, $record, $instrument, $event_id) {
+	function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id, $survey_hash, $response_id, $repeat_instance) {
 		$module_settings = ExternalModules::getProjectSettingsAsArray([$this->PREFIX], $project_id);
 		if(!empty($module_settings['piped-form']['value']) && is_array($module_settings['piped-form']['value']) && in_array($instrument, $module_settings['piped-form']['value'])) {
-			$escInst = db_real_escape_string($instrument);
-			$sql = "SELECT * FROM redcap_locking_data WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND form_name = '{$escInst}'";
-			$results = $this->query($sql);
-			$lockData = db_fetch_assoc($results);
-			if(empty($lockData)) {
-				$sql = "INSERT INTO redcap_locking_data SET project_id = {$project_id}, record = {$record}, event_id = {$event_id}, form_name = '{$escInst}', timestamp = '".date('Y-m-d H:i:s')."'";
-				$results = $this->query($sql);
-			}
-
-			$fieldName = db_real_escape_string($instrument).'_complete';
-			$sql = "SELECT * FROM redcap_data WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND field_name = '{$fieldName}'";
-			$compResults = $this->query($sql);
-			$compData = db_fetch_assoc($compResults);
-			if(empty($compData)) {
-				$sql = "INSERT INTO redcap_data SET project_id = {$project_id}, record = {$record}, event_id = {$event_id}, field_name = '{$fieldName}', value = 2";
-				$results = $this->query($sql);
-			} else {
-				$sql = "UPDATE redcap_data SET value = 2 WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND field_name = '{$fieldName}'";
-				$results = $this->query($sql);
+			$valKey = array_search($instrument, $module_settings['piped-form']['value']);
+			if($module_settings['lock-on-complete']['value'][$valKey]){
+				$fieldName = db_real_escape_string($instrument).'_complete';
+				$sql = "SELECT * FROM redcap_data WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND field_name = '{$fieldName}'";
+				if($repeat_instance >= 2) {
+					$sql .= " AND instance = ".$repeat_instance;
+				} else {
+					$sql .= " AND instance IS NULL";
+				}
+				$compResults = $this->query($sql);
+				$compData = db_fetch_assoc($compResults);
+				if(!empty($compData) && $compData['value'] == 2) {
+					$escInst = db_real_escape_string($instrument);
+					$sql = "SELECT * FROM redcap_locking_data WHERE project_id = {$project_id} AND record = {$record} AND event_id = {$event_id} AND form_name = '{$escInst}' AND instance = ".$repeat_instance;
+					$results = $this->query($sql);
+					$lockData = db_fetch_assoc($results);
+					if(empty($lockData)) {
+						$sql = "INSERT INTO redcap_locking_data SET project_id = {$project_id}, record = {$record}, event_id = {$event_id}, form_name = '{$escInst}', instance = {$repeat_instance}, timestamp = '".date('Y-m-d H:i:s')."'";
+						$results = $this->query($sql);
+					}
+				}
 			}
 		}
 	}
@@ -89,8 +112,8 @@ class EnrolledSatelliteProjectExternalModule extends AbstractExternalModule
 	public function addCentralProjectLink($project_id, $record) {
 		$module_settings = ExternalModules::getProjectSettingsAsArray([$this->PREFIX], $project_id);
 		if(!empty($module_settings['central-project-id']['value'])) {
-			$satPID = db_real_escape_string($module_settings['central-project-id']['value']);
-			$sql = "SELECT project_id, project_name, app_title FROM redcap_projects WHERE project_id = ".$satPID;
+			$centPID = db_real_escape_string($module_settings['central-project-id']['value']);
+			$sql = "SELECT project_id, project_name, app_title FROM redcap_projects WHERE project_id = ".$centPID;
 			$results = $this->query($sql);
 			$projData = db_fetch_assoc($results);
 
